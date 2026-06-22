@@ -26,7 +26,7 @@ export function defaultSettings(): Settings {
     format: "jpeg",
     quality: 0.9,
     borderThickness: 0,
-    borderColor: "#000000",
+    borderColor: "#ffffff",
     borderScope: "each",
   };
 }
