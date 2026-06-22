@@ -5,7 +5,8 @@ import type { Settings } from "./types";
 function settings(over: Partial<Settings> = {}): Settings {
   return {
     layout: "square", gridWidth: 300, maxGridHeight: 300, columns: 3,
-    cropMode: "center", addNames: false, limit: 0, perGrid: 0, format: "jpeg", quality: 0.9, ...over,
+    cropMode: "center", addNames: false, limit: 0, perGrid: 0, format: "jpeg", quality: 0.9,
+    borderThickness: 0, borderColor: "#000000", borderScope: "each", ...over,
   };
 }
 

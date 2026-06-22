@@ -3,6 +3,7 @@ import type { GridPlan } from "../core/compose";
 import { computeSquareScale, computeAspectResize, cropOffset } from "../core/resize";
 import { findInterestingArea, type PixelView } from "../core/smartcrop";
 import { truncateText } from "../core/label";
+import { borderRects } from "../core/border";
 import { downscale } from "./resample";
 
 const ANALYSIS_MAX = 256; // downsample cap for the saliency scan
@@ -71,6 +72,17 @@ export function renderPlan(
   for (const c of plan.cells) {
     ctx.drawImage(cells[c.srcIndex], c.dx, c.dy, c.w, c.h);
     if (settings.addNames) drawLabel(ctx, c.dx, c.dy, c.w, c.h, names[c.srcIndex]);
+  }
+  const borders = borderRects(
+    plan.cells,
+    plan.width,
+    plan.height,
+    settings.borderThickness,
+    settings.borderScope,
+  );
+  if (borders.length > 0) {
+    ctx.fillStyle = settings.borderColor;
+    for (const r of borders) ctx.fillRect(r.x, r.y, r.w, r.h);
   }
   return out;
 }

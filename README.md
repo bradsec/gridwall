@@ -8,6 +8,7 @@ Image grids and masonry walls in your browser. Gridwall resizes images and build
 - Square cells with selectable crop framing: smart (saliency), center, or top
 - Masonry layout that preserves aspect ratio
 - Optional filename labels on cells
+- Optional border with adjustable thickness and hex color, applied to each image or the whole grid
 - Reorder images by drag, shuffle, or rotate (90 degree steps), with live preview
 - Per-image decode skip-and-continue on error
 - Multi-file split by height limit, with a file pager in the preview
@@ -121,6 +122,7 @@ The Compose mode in the UI creates grids or masonry layouts from multiple images
 - **Max height per file**: (square-grid mode only) splits the grid into multiple files if it exceeds this height
 - **Per file**: (masonry mode only) splits the output by image count per file (0 = all images in one file)
 - **Filename labels**: adds a semi-transparent bar with the image filename to each cell
+- **Border**: overlays a colored border on the composite. Thickness slider (0 = off, the default), a color picker with hex entry, and an Apply-to choice of each image or the whole grid. Drawn within the output, so it does not change the grid dimensions
 - **Limit**: process only the first N images
 - **Format**: JPEG or PNG
 - **Quality**: JPEG quality slider (hidden when the format is PNG, which is lossless)

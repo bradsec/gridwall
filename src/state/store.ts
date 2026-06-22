@@ -25,6 +25,9 @@ export function defaultSettings(): Settings {
     perGrid: 0,
     format: "jpeg",
     quality: 0.9,
+    borderThickness: 0,
+    borderColor: "#000000",
+    borderScope: "each",
   };
 }
 

@@ -1,5 +1,5 @@
 import type { Store } from "../state/store";
-import type { CropMode, LayoutMode, OutputFormat } from "../core/types";
+import type { BorderScope, CropMode, LayoutMode, OutputFormat } from "../core/types";
 import { icon } from "./icons";
 
 let statusEl: HTMLElement;
@@ -46,9 +46,9 @@ export function mountApp(root: HTMLElement, store: Store, onExport: () => void):
           <span class="tagline">Image Grids &amp; Masonry Walls</span>
         </div>
         <span class="spacer"></span>
-        <button class="btn ghost" id="reset" type="button">Reset</button>
-        <label class="btn secondary" id="add" for="files">Add images</label>
-        <button class="btn primary" id="export" type="button">Export</button>
+        <button class="btn ghost" id="reset" type="button" aria-label="Reset" title="Reset"><span class="btn-label">Reset</span></button>
+        <label class="btn secondary" id="add" for="files" aria-label="Add images" title="Add images"><span class="btn-label">Add images</span></label>
+        <button class="btn primary" id="export" type="button" aria-label="Export" title="Export"><span class="btn-label">Export</span></button>
         <input id="files" type="file" accept="image/png,image/jpeg" multiple class="visually-hidden" />
       </header>
 
@@ -93,6 +93,7 @@ export function mountApp(root: HTMLElement, store: Store, onExport: () => void):
   progressBar = progressWrap.querySelector("span")!;
 
   root.querySelector("#empty-icon")!.replaceWith(iconWrap("image", 44, "empty-icon"));
+  prependIcon(root.querySelector<HTMLElement>("#reset")!, "rotate");
   prependIcon(root.querySelector<HTMLElement>("#add")!, "plus");
   prependIcon(root.querySelector<HTMLElement>("#export")!, "download");
   root.querySelector("#shuffle")!.appendChild(icon("shuffle"));
@@ -106,7 +107,7 @@ export function mountApp(root: HTMLElement, store: Store, onExport: () => void):
   // file picker natively. No programmatic input.click(), which Chrome can drop.
 }
 
-function prependIcon(btn: HTMLElement, name: "plus" | "download"): void {
+function prependIcon(btn: HTMLElement, name: "plus" | "download" | "rotate"): void {
   btn.prepend(icon(name));
 }
 
@@ -166,6 +167,25 @@ function buildSettings(host: HTMLElement, store: Store): void {
     </section>
 
     <section class="group">
+      <h3 class="group-title">Border</h3>
+      <label class="field"><span class="label">Thickness (px)</span>
+        <div class="range-row">
+          <input id="set-border-thickness" type="range" min="0" max="40" step="1" value="${s.borderThickness}" />
+          <output id="set-border-thickness-out">${s.borderThickness}</output>
+        </div></label>
+      <label class="field"><span class="label">Apply to</span>
+        <select id="set-border-scope">
+          <option value="each">Each image</option>
+          <option value="outside">Whole grid</option>
+        </select></label>
+      <div class="field"><span class="label">Color</span>
+        <div class="color-row">
+          <input id="set-border-color" type="color" value="${s.borderColor}" />
+          <input id="set-border-hex" type="text" spellcheck="false" maxlength="7" value="${s.borderColor}" />
+        </div></div>
+    </section>
+
+    <section class="group">
       <h3 class="group-title">Output</h3>
       <label class="field"><span class="label">Format</span>
         <select id="set-format">
@@ -207,6 +227,31 @@ function buildSettings(host: HTMLElement, store: Store): void {
     const val = Number(qualityInput.value);
     qualityOut.textContent = val.toFixed(2);
     store.setSettings({ quality: val });
+  });
+
+  const thicknessInput = host.querySelector<HTMLInputElement>("#set-border-thickness")!;
+  const thicknessOut = host.querySelector<HTMLOutputElement>("#set-border-thickness-out")!;
+  thicknessInput.addEventListener("input", () => {
+    const val = Number(thicknessInput.value);
+    thicknessOut.textContent = String(val);
+    store.setSettings({ borderThickness: val });
+  });
+  host.querySelector<HTMLSelectElement>("#set-border-scope")!.addEventListener("change", (e) =>
+    store.setSettings({ borderScope: (e.target as HTMLSelectElement).value as BorderScope }));
+
+  const colorInput = host.querySelector<HTMLInputElement>("#set-border-color")!;
+  const hexInput = host.querySelector<HTMLInputElement>("#set-border-hex")!;
+  colorInput.addEventListener("input", () => {
+    hexInput.value = colorInput.value;
+    store.setSettings({ borderColor: colorInput.value });
+  });
+  hexInput.addEventListener("input", () => {
+    const m = hexInput.value.trim().replace(/^#/, "");
+    if (/^[0-9a-fA-F]{6}$/.test(m)) {
+      const hex = "#" + m.toLowerCase();
+      colorInput.value = hex;
+      store.setSettings({ borderColor: hex });
+    }
   });
 
   // Segmented layout control + mode-aware visibility of square/masonry-only fields.

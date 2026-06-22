@@ -10,5 +10,10 @@ export function validateSettings(s: Settings): string | null {
     return `crop mode must be smart, center, or top, got ${s.cropMode}`;
   if (s.limit < 0) return `limit must be >= 0, got ${s.limit}`;
   if (s.perGrid < 0) return `per-grid must be >= 0, got ${s.perGrid}`;
+  if (s.borderThickness < 0) return `border thickness must be >= 0, got ${s.borderThickness}`;
+  if (!/^#[0-9a-fA-F]{6}$/.test(s.borderColor))
+    return `border color must be a 6-digit hex like #000000, got ${s.borderColor}`;
+  if (s.borderScope !== "each" && s.borderScope !== "outside")
+    return `border scope must be each or outside, got ${s.borderScope}`;
   return null;
 }
