@@ -133,26 +133,6 @@ The Compose mode in the UI creates grids or masonry layouts from multiple images
 - **Remove**: drop a single image
 - **Reset**: clear all images and restore default settings
 
-## Deliberate Deviations from the Go Version
-
-The web app is a reimplementation of [goimagegrid](golang_version/) and maintains API and layout parity, with the following intentional differences:
-
-- **Resampler algorithm**: The web app uses repeated halving passes followed by a smoothed final draw, rather than Catmull-Rom spline interpolation. This matches the intent of high-quality downscaling but produces slightly different pixel values. Tests assert dimensions and placement, not pixel-identical output.
-
-- **Smart-crop saliency**: The web version drops the color-cluster term from the Go saliency algorithm, simplifying the calculation while preserving the edge and color-variation components.
-
-- **Shuffle**: The web app shuffles through an explicit button using a mulberry32 generator. Unlike the Go version it does not expose a reproducible seed; each press produces a new random order.
-
-- **Main-thread pipeline**: P1 runs image processing on the main thread during composition. Worker offload is planned for P4 to improve UI responsiveness during heavy batch operations.
-
-See the [design spec](docs/superpowers/specs/2026-06-22-imagegrid-web-design.md) for architecture details.
-
-## Planned Phases (P2-P4)
-
-- **P2**: Batch resize mode (resize many images individually, download as zip)
-- **P3**: Gallery export (self-contained responsive HTML/CSS gallery with embedded images)
-- **P4**: Web Worker offload for main-thread pixel work and accessibility improvements
-
 ## License
 
 This project is licensed under the MIT License.
