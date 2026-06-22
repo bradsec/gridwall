@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://bradsec.github.io/gridwall/sitemap.xml
