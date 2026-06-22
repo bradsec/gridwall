@@ -49,6 +49,9 @@ export function createController(store: Store) {
   // Which output file the preview is showing (square/masonry can span several).
   let previewIndex = 0;
 
+  // Memoizes the last rendered cell set, keyed by the inputs that affect it.
+  let cellCache: { sig: string; cells: OffscreenCanvas[] } | null = null;
+
   // Applies the image limit. Order is the store's persisted order, mutated by
   // drag-reorder and the shuffle action, so no render-time reshuffling.
   function selected(): LoadedImage[] {
@@ -69,7 +72,24 @@ export function createController(store: Store) {
       maxGridHeight: Math.max(Math.round(settings.maxGridHeight * scale), 1),
     };
     const cellSize = Math.max(Math.floor(scaled.gridWidth / settings.columns), 1);
-    const cells = imgs.map((im) => renderCell(rotate(im.bitmap, im.rotation ?? 0), settings, cellSize));
+
+    // Cell rendering (downscale + saliency crop) is the expensive step. It only
+    // depends on the images, crop framing, layout, and cell size, so cache it
+    // and reuse when cheap settings (border, labels, quality) change. This keeps
+    // border-slider drags from re-running the per-image pipeline.
+    const sig = [
+      settings.layout,
+      settings.cropMode,
+      cellSize,
+      imgs.map((im) => `${im.name}#${im.rotation ?? 0}`).join(","),
+    ].join("|");
+    let cells: OffscreenCanvas[];
+    if (cellCache && cellCache.sig === sig) {
+      cells = cellCache.cells;
+    } else {
+      cells = imgs.map((im) => renderCell(rotate(im.bitmap, im.rotation ?? 0), settings, cellSize));
+      cellCache = { sig, cells };
+    }
     const names = imgs.map((im) => im.name);
 
     const plans =
@@ -146,6 +166,7 @@ export function createController(store: Store) {
       URL.revokeObjectURL(im.thumbUrl);
     }
     previewIndex = 0;
+    cellCache = null;
     store.reset(defaultSettings());
     rebuildSettings(store);
   }
