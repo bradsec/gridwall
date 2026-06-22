@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { Settings } from "./types";
-import { validateSettings } from "./settings";
+import { validateSettings, checkOutputSize, MAX_CANVAS_DIM } from "./settings";
 
 function base(): Settings {
   return {
@@ -32,5 +32,17 @@ describe("validateSettings", () => {
     expect(validateSettings({ ...base(), borderColor: "blue" })).not.toBeNull();
     expect(validateSettings({ ...base(), borderColor: "#FFF" })).not.toBeNull();
     expect(validateSettings({ ...base(), borderScope: "edges" as never })).not.toBeNull();
+  });
+});
+
+describe("checkOutputSize", () => {
+  it("accepts canvases within the limit", () => {
+    expect(checkOutputSize(MAX_CANVAS_DIM, MAX_CANVAS_DIM)).toBeNull();
+    expect(checkOutputSize(900, 4000)).toBeNull();
+  });
+  it("rejects either dimension over the limit", () => {
+    expect(checkOutputSize(MAX_CANVAS_DIM + 1, 900)).not.toBeNull();
+    expect(checkOutputSize(900, MAX_CANVAS_DIM + 1)).not.toBeNull();
+    expect(checkOutputSize(15000, 15000)).not.toBeNull();
   });
 });

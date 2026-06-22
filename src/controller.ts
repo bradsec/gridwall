@@ -1,6 +1,6 @@
 import type { Store, LoadedImage } from "./state/store";
 import { defaultSettings } from "./state/store";
-import { validateSettings } from "./core/settings";
+import { validateSettings, checkOutputSize, MAX_CANVAS_DIM } from "./core/settings";
 import { planSquareGrids, planMasonryGrids } from "./core/compose";
 import { renderCell, renderPlan, encode, rotate } from "./canvas/render";
 import { setStatus, setBusy, showToast, setPager, rebuildSettings } from "./ui/app";
@@ -148,7 +148,9 @@ export function createController(store: Store) {
       const total = images.length;
       const imgLabel = used < total ? `${used} of ${total} images` : `${used} images`;
       const fileLabel = plans.length === 1 ? "1 file" : `${plans.length} files`;
-      setStatus(`${imgLabel}  ·  ${fileLabel}  ·  ${outW} × ${outH}px`);
+      const base = `${imgLabel}  ·  ${fileLabel}  ·  ${outW} × ${outH}px`;
+      const sizeWarn = checkOutputSize(outW, outH);
+      setStatus(sizeWarn ? `${base}  ·  too large to export (max ${MAX_CANVAS_DIM}px)` : base);
     } catch (e) {
       setStatus(`Preview failed: ${(e as Error).message}`);
       setPager(0, 0);
@@ -185,6 +187,10 @@ export function createController(store: Store) {
     setBusy(true, 0);
     try {
       const { plans, cells, names } = await buildPlansAndCells(1);
+      for (const p of plans) {
+        const sizeErr = checkOutputSize(p.width, p.height);
+        if (sizeErr) { showToast("error", sizeErr); return; }
+      }
       const ext = settings.format === "png" ? "png" : "jpg";
       const outputs: { blob: Blob; name: string }[] = [];
       for (let i = 0; i < plans.length; i++) {
@@ -195,7 +201,14 @@ export function createController(store: Store) {
       }
       await deliver(outputs);
     } catch (e) {
-      showToast("error", `Export failed: ${(e as Error).message}`);
+      const msg = (e as Error).message;
+      // A zero-size canvas means the browser refused the allocation despite the
+      // pre-check (e.g. memory pressure on a huge but in-range canvas). Add a
+      // hint so the raw DOM error is actionable.
+      const hint = /size of .*is zero|allocat/i.test(msg)
+        ? ` (grid too large to render; keep width and height under ${MAX_CANVAS_DIM}px)`
+        : "";
+      showToast("error", `Export failed: ${msg}${hint}`);
     } finally {
       setBusy(false);
     }

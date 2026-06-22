@@ -1,5 +1,19 @@
 import type { Settings } from "./types";
 
+// Browsers refuse to allocate canvases beyond a per-side pixel limit (Chrome
+// 16384, Firefox ~11180, Safari/mobile lower). An over-limit OffscreenCanvas
+// silently reports size 0, so convertToBlob throws "size is zero". 8192 is the
+// largest side that allocates reliably across browsers and mobile.
+export const MAX_CANVAS_DIM = 8192;
+
+// Guards a computed output canvas against the browser limit. Checked per output
+// file because height grows with rows/images even when width is in range.
+export function checkOutputSize(width: number, height: number): string | null {
+  if (width > MAX_CANVAS_DIM || height > MAX_CANVAS_DIM)
+    return `output ${width} × ${height}px exceeds the ${MAX_CANVAS_DIM}px canvas limit. Reduce grid width, columns, or images per file.`;
+  return null;
+}
+
 export function validateSettings(s: Settings): string | null {
   if (s.columns < 1) return `columns must be >= 1, got ${s.columns}`;
   if (s.gridWidth < 1) return `grid width must be >= 1, got ${s.gridWidth}`;

@@ -159,6 +159,7 @@ body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 
 .field:last-child { margin-bottom: 0; }
 .field > .label { display: block; font-size: 12.5px; color: var(--text-dim); margin-bottom: 5px; }
 .field.hidden { display: none; }
+.hint { font-size: 11.5px; line-height: 1.4; color: var(--text-dim); margin: 0 0 12px; }
 
 input[type="number"], input[type="text"], select { width: 100%; font: inherit; font-size: 13px; color: var(--text);
   background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm);

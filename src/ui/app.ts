@@ -1,6 +1,7 @@
 import type { Store } from "../state/store";
 import type { BorderScope, CropMode, LayoutMode, OutputFormat } from "../core/types";
 import { icon } from "./icons";
+import { MAX_CANVAS_DIM } from "../core/settings";
 
 let statusEl: HTMLElement;
 let progressWrap: HTMLElement;
@@ -149,10 +150,11 @@ function buildSettings(host: HTMLElement, store: Store): void {
 
     <section class="group">
       <h3 class="group-title">Sizing</h3>
+      <p class="hint">Each output image is capped at ${MAX_CANVAS_DIM} × ${MAX_CANVAS_DIM}px (browser canvas limit). Larger grids fail to export.</p>
       <label class="field"><span class="label">Grid width (px)</span>
-        <input id="set-width" type="number" min="1" value="${s.gridWidth}" /></label>
+        <input id="set-width" type="number" min="1" max="${MAX_CANVAS_DIM}" value="${s.gridWidth}" /></label>
       <label class="field square-only"><span class="label">Max height per file (px)</span>
-        <input id="set-height" type="number" min="1" value="${s.maxGridHeight}" /></label>
+        <input id="set-height" type="number" min="1" max="${MAX_CANVAS_DIM}" value="${s.maxGridHeight}" /></label>
       <label class="field masonry-only"><span class="label">Images per file (0 = all)</span>
         <input id="set-pergrid" type="number" min="0" value="${s.perGrid}" /></label>
       <label class="field"><span class="label">Use at most (0 = all)</span>
