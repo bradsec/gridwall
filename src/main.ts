@@ -1,11 +1,12 @@
 import "./style.css";
 import { Store, defaultSettings } from "./state/store";
+import { loadSettings, saveSettings } from "./state/persist";
 import { mountApp } from "./ui/app";
 import { createController } from "./controller";
 import { renderTray } from "./ui/tray";
 
 const root = document.querySelector<HTMLDivElement>("#app")!;
-const store = new Store(defaultSettings());
+const store = new Store(loadSettings() ?? defaultSettings());
 
 let controller: ReturnType<typeof createController>;
 mountApp(root, store, () => void controller.exportComposite());
@@ -63,3 +64,7 @@ function debounce(fn: () => void, ms: number): () => void {
 }
 const schedulePreview = debounce(() => void controller.renderPreview(), 120);
 store.subscribe(schedulePreview);
+
+// Persist settings on every change (small payload; images stay memory-only).
+// Reset writes defaults through this same path.
+store.subscribe(() => saveSettings(store.getState().settings));
