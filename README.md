@@ -77,9 +77,10 @@ Tests use Vitest and cover layout math, resampling, smart-crop logic, grid/mason
 
 ### GitHub Pages
 
-1. Build: `npm run build`
-2. Push the `dist/` folder to your repository (or configure a workflow to do so)
-3. Enable GitHub Pages to serve from the `dist/` folder
+Deployment is automated. Pushing to `main` triggers
+`.github/workflows/deploy.yml`, which runs `npm ci && npm run build` and
+publishes `dist/` to GitHub Pages. The only manual step (once, for a fork) is
+Settings > Pages > set the source to "GitHub Actions".
 
 ### Cloudflare Pages
 
