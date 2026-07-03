@@ -5,7 +5,7 @@ import { icon } from "./icons";
 // state. Reordering uses Pointer Events on a grip handle so it works with touch
 // (HTML5 drag-and-drop does not fire on touchscreens) and a mouse, and leaves the
 // rest of the tile free for scrolling the strip on mobile.
-export function renderTray(store: Store): void {
+export function renderTray(store: Store, onRemove: (index: number) => void): void {
   const host = document.querySelector<HTMLElement>("#thumbs");
   const countEl = document.querySelector<HTMLElement>("#count");
   if (!host) return;
@@ -87,11 +87,7 @@ export function renderTray(store: Store): void {
     removeBtn.type = "button";
     removeBtn.setAttribute("aria-label", "Remove " + image.name);
     removeBtn.appendChild(icon("x", 13));
-    removeBtn.addEventListener("click", () => {
-      image.bitmap.close();
-      URL.revokeObjectURL(image.thumbUrl);
-      store.removeImage(i);
-    });
+    removeBtn.addEventListener("click", () => onRemove(i));
 
     thumb.append(grip, img, name, rotateBtn, removeBtn);
     host.appendChild(thumb);
