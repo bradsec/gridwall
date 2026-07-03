@@ -34,7 +34,7 @@ export function createController(store: Store) {
       }
       try {
         const bitmap = await item.bitmap!;
-        loaded.push({ name: item.file.name, bitmap, thumbUrl: item.thumbUrl });
+        loaded.push({ id: crypto.randomUUID(), name: item.file.name, bitmap, thumbUrl: item.thumbUrl });
       } catch {
         URL.revokeObjectURL(item.thumbUrl);
         showToast("error", `Skipped ${item.file.name}: could not decode`);
@@ -81,7 +81,7 @@ export function createController(store: Store) {
       settings.layout,
       settings.cropMode,
       cellSize,
-      imgs.map((im) => `${im.name}#${im.rotation ?? 0}`).join(","),
+      imgs.map((im) => `${im.id}#${im.rotation ?? 0}`).join(","),
     ].join("|");
     let cells: OffscreenCanvas[];
     if (cellCache && cellCache.sig === sig) {

@@ -3,7 +3,7 @@ import { Store, defaultSettings } from "./store";
 import type { LoadedImage } from "./store";
 
 function img(name: string): LoadedImage {
-  return { name, bitmap: {} as unknown as ImageBitmap, thumbUrl: "blob:" + name };
+  return { id: "id-" + name, name, bitmap: {} as unknown as ImageBitmap, thumbUrl: "blob:" + name };
 }
 
 describe("Store", () => {

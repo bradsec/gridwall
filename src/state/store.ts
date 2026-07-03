@@ -2,6 +2,9 @@ import type { Settings } from "../core/types";
 import { shuffleInPlace } from "../core/shuffle";
 
 export interface LoadedImage {
+  // Unique per load. Filenames repeat across loads (IMG_0001.JPG), so caches
+  // must key on this, not name, or a re-added file can hit a stale entry.
+  id: string;
   name: string;
   bitmap: ImageBitmap;
   thumbUrl: string;
