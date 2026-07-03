@@ -4,7 +4,7 @@ import { createPipeline, type Pipeline, type PreviewResult } from "./pipeline";
 
 export interface WorkerLike {
   postMessage(msg: unknown, transfer?: Transferable[]): void;
-  addEventListener(type: "message", fn: (ev: MessageEvent) => void): void;
+  addEventListener(type: "message" | "error" | "messageerror", fn: (ev: MessageEvent | ErrorEvent) => void): void;
 }
 
 export interface Bridge {
@@ -39,8 +39,26 @@ export function createBridge(worker: WorkerLike): Bridge {
   // Latest preview wins; older previews resolve null and their bitmaps close.
   let latestPreviewJob = 0;
 
+  // If the worker script fails to load/evaluate, or a message fails to
+  // deserialize, no "message" response ever arrives: fail every pending job
+  // instead of leaving its promise (and any awaiting UI state) hanging.
+  function failAllPending(err: Error): void {
+    for (const job of pending.values()) job.reject(err);
+    pending.clear();
+    latestPreviewJob = 0;
+  }
+
+  worker.addEventListener("error", (ev) => {
+    const message = "message" in ev && typeof ev.message === "string" ? ev.message : undefined;
+    failAllPending(new Error("image worker failed" + (message ? ": " + message : "")));
+  });
+
+  worker.addEventListener("messageerror", () => {
+    failAllPending(new Error("image worker failed"));
+  });
+
   worker.addEventListener("message", (ev) => {
-    const msg = ev.data as WorkerResponse;
+    const msg = (ev as MessageEvent).data as WorkerResponse;
     const job = pending.get(msg.jobId);
     if (!job) return;
     switch (msg.op) {

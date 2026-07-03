@@ -3,7 +3,7 @@ import { defaultSettings } from "./state/store";
 import { validateSettings, checkOutputSize, MAX_CANVAS_DIM } from "./core/settings";
 import { setStatus, setBusy, showToast, setPager, rebuildSettings } from "./ui/app";
 import type { Bridge } from "./worker/bridge";
-import type { OrderEntry } from "./worker/protocol";
+import type { OrderEntry, LoadResult } from "./worker/protocol";
 
 const ACCEPTED = new Set(["image/png", "image/jpeg"]);
 
@@ -43,9 +43,16 @@ export function createController(store: Store, bridge: Bridge) {
     const toLoad = items.filter((i) => i.accepted);
     if (!toLoad.length) return;
 
-    const results = await bridge.load(
-      toLoad.map((i) => ({ id: i.id, name: i.file.name, blob: i.file })),
-    );
+    let results: LoadResult[];
+    try {
+      results = await bridge.load(
+        toLoad.map((i) => ({ id: i.id, name: i.file.name, blob: i.file })),
+      );
+    } catch (e) {
+      for (const item of toLoad) URL.revokeObjectURL(item.thumbUrl);
+      showToast("error", `Import failed: ${(e as Error).message}`);
+      return;
+    }
     const byId = new Map(results.map((r) => [r.id, r]));
     const loaded: LoadedImage[] = [];
     for (const item of toLoad) {
@@ -119,13 +126,15 @@ export function createController(store: Store, bridge: Bridge) {
     const im = store.getState().images[index];
     if (!im) return;
     URL.revokeObjectURL(im.thumbUrl);
-    void bridge.remove([im.id]);
+    // worker teardown failures have no user-actionable surface
+    void bridge.remove([im.id]).catch(() => undefined);
     store.removeImage(index);
   }
 
   function reset(): void {
     for (const im of store.getState().images) URL.revokeObjectURL(im.thumbUrl);
-    void bridge.reset();
+    // worker teardown failures have no user-actionable surface
+    void bridge.reset().catch(() => undefined);
     previewIndex = 0;
     store.reset(defaultSettings());
     rebuildSettings(store);

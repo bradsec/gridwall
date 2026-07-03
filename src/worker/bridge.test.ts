@@ -4,16 +4,19 @@ import type { WorkerRequest, WorkerResponse } from "./protocol";
 import type { Pipeline } from "./pipeline";
 import { defaultSettings } from "../state/store";
 
-// Fake worker: captures requests, lets the test emit responses.
+// Fake worker: captures requests, lets the test emit responses or failures.
 function fakeWorker() {
   const sent: WorkerRequest[] = [];
-  let listener: ((ev: MessageEvent) => void) | null = null;
+  const listeners: Partial<Record<"message" | "error" | "messageerror", (ev: MessageEvent | ErrorEvent) => void>> = {};
   const worker: WorkerLike = {
     postMessage: (msg) => void sent.push(msg as WorkerRequest),
-    addEventListener: (_type, fn) => void (listener = fn),
+    addEventListener: (type, fn) => void (listeners[type] = fn),
   };
-  const emit = (msg: WorkerResponse) => listener!({ data: msg } as MessageEvent);
-  return { worker, sent, emit };
+  const emit = (msg: WorkerResponse) => listeners.message!({ data: msg } as MessageEvent);
+  const emitError = (message?: string) =>
+    listeners.error!((message ? { message } : {}) as ErrorEvent);
+  const emitMessageError = () => listeners.messageerror!({} as MessageEvent);
+  return { worker, sent, emit, emitError, emitMessageError };
 }
 
 const order = [{ id: "a", name: "a.jpg", rotation: 0 }];
@@ -62,6 +65,22 @@ describe("bridge", () => {
     emit({ op: "previewDone", jobId: j2, bitmap: fakeBitmap(), pageCount: 2, trueWidth: 9, trueHeight: 9 });
     await expect(first).resolves.toBeNull();
     await expect(second).resolves.toMatchObject({ pageCount: 2 });
+  });
+
+  it("fails all pending jobs when the worker errors, and drains the pending map", async () => {
+    const { worker, sent, emit, emitError } = fakeWorker();
+    const bridge = createBridge(worker);
+    const loadP = bridge.load([{ id: "a", name: "a.jpg", blob: new Blob() }]);
+    const exportP = bridge.exportAll(order, defaultSettings(), () => undefined);
+    const staleJobId = sent[0].jobId;
+
+    emitError("boom");
+
+    await expect(loadP).rejects.toThrow(/image worker failed/);
+    await expect(exportP).rejects.toThrow(/image worker failed/);
+
+    // Pending map was drained: a late response for an already-failed job is a no-op.
+    expect(() => emit({ op: "done", jobId: staleJobId })).not.toThrow();
   });
 
   it("resolves remove and reset acks", async () => {

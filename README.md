@@ -14,14 +14,14 @@ Image grids and masonry walls in your browser. Gridwall resizes images and build
 - Multi-file split by height limit, with a file pager in the preview
 - JPEG and PNG output with adjustable JPEG quality
 - Professional dark UI with live preview
-- Decoding, cropping, and compositing run in a Web Worker so the UI stays responsive during large exports, falling back to the main thread when Web Workers or OffscreenCanvas are unavailable
+- Decoding, cropping, and compositing run in a Web Worker so the UI stays responsive during large exports, falling back to the main thread when Web Workers are unavailable (OffscreenCanvas and createImageBitmap support is still required either way)
 - Settings are saved locally in the browser (localStorage) and restored on your next visit
 - Fully static-hostable
 
 ## Requirements
 
 - Node.js 18+ and npm
-- Modern browser with OffscreenCanvas and createImageBitmap support (Chrome 79+, Firefox 82+, Safari 16.4+) for the Web Worker pipeline; browsers without these fall back to the same pipeline running on the main thread
+- Modern browser with OffscreenCanvas and createImageBitmap support (Chrome 79+, Firefox 82+, Safari 16.4+); browsers without Web Worker support fall back to the same pipeline running on the main thread
 
 ## Installation and Development
 
