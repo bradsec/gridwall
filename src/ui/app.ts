@@ -208,6 +208,13 @@ function buildSettings(host: HTMLElement, store: Store): void {
         </div></label>
     </section>`;
 
+  // Selects and the checkbox render stateless in the template; set them from
+  // settings so persisted/reset state always shows correctly.
+  host.querySelector<HTMLSelectElement>("#set-crop")!.value = s.cropMode;
+  host.querySelector<HTMLSelectElement>("#set-border-scope")!.value = s.borderScope;
+  host.querySelector<HTMLSelectElement>("#set-format")!.value = s.format;
+  host.querySelector<HTMLInputElement>("#set-names")!.checked = s.addNames;
+
   const num = (id: string, key: "columns" | "gridWidth" | "maxGridHeight" | "limit" | "perGrid") =>
     host.querySelector<HTMLInputElement>(id)!.addEventListener("input", (e) =>
       store.setSettings({ [key]: Number((e.target as HTMLInputElement).value) }));
