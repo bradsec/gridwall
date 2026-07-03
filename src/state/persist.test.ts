@@ -53,4 +53,13 @@ describe("settings persistence", () => {
     expect(() => saveSettings(defaultSettings(), undefined as never)).not.toThrow();
     expect(loadSettings(undefined as never)).toBeNull();
   });
+
+  it("rejects out-of-range or non-finite quality", () => {
+    for (const bad of ["5", "-1", "1e999"]) {
+      const s = loadSettings(memStorage({ [SETTINGS_KEY]: `{"quality": ${bad}}` }))!;
+      expect(s.quality).toBe(defaultSettings().quality);
+    }
+    const ok = loadSettings(memStorage({ [SETTINGS_KEY]: '{"quality": 0.35}' }))!;
+    expect(ok.quality).toBe(0.35);
+  });
 });

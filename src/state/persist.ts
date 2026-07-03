@@ -12,6 +12,12 @@ const ENUMS: Partial<Record<keyof Settings, readonly string[]>> = {
   borderScope: ["each", "outside"],
 };
 
+// Numeric fields with a bounded domain; out-of-range stored values fall back
+// to the default for that field.
+const RANGES: Partial<Record<keyof Settings, [number, number]>> = {
+  quality: [0.1, 1],
+};
+
 function safeStorage(): Storage | null {
   // localStorage can throw on access in some private modes.
   try {
@@ -63,8 +69,16 @@ export function loadSettings(
       if (typeof value === "string" && allowed.includes(value)) {
         (out as Record<string, unknown>)[key] = value;
       }
-    } else if (typeof value === typeof defaults[key]) {
-      (out as Record<string, unknown>)[key] = value;
+    } else {
+      const range = RANGES[key];
+      if (range) {
+        const [min, max] = range;
+        if (typeof value === "number" && Number.isFinite(value) && value >= min && value <= max) {
+          (out as Record<string, unknown>)[key] = value;
+        }
+      } else if (typeof value === typeof defaults[key]) {
+        (out as Record<string, unknown>)[key] = value;
+      }
     }
   }
 
