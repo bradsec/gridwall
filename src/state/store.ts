@@ -6,8 +6,10 @@ export interface LoadedImage {
   // must key on this, not name, or a re-added file can hit a stale entry.
   id: string;
   name: string;
-  bitmap: ImageBitmap;
   thumbUrl: string;
+  // Decoded dimensions, reported by the worker (bitmaps live worker-side).
+  width: number;
+  height: number;
   rotation?: number; // degrees clockwise, multiple of 90; undefined === 0
 }
 

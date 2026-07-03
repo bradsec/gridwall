@@ -1,41 +1,58 @@
 import type { Store, LoadedImage } from "./state/store";
 import { defaultSettings } from "./state/store";
 import { validateSettings, checkOutputSize, MAX_CANVAS_DIM } from "./core/settings";
-import { planSquareGrids, planMasonryGrids } from "./core/compose";
-import { renderCell, renderPlan, encode, rotate } from "./canvas/render";
 import { setStatus, setBusy, showToast, setPager, rebuildSettings } from "./ui/app";
+import type { Bridge } from "./worker/bridge";
+import type { OrderEntry } from "./worker/protocol";
 
 const ACCEPTED = new Set(["image/png", "image/jpeg"]);
 
-export function createController(store: Store) {
+export function createController(store: Store, bridge: Bridge) {
   const preview = document.querySelector<HTMLCanvasElement>("#preview")!;
   const empty = document.querySelector<HTMLElement>("#empty")!;
 
+  // Applies the image limit. Order is the store's persisted order, mutated by
+  // drag-reorder and the shuffle action, so no render-time reshuffling.
+  function selected(): LoadedImage[] {
+    const { images, settings } = store.getState();
+    if (settings.limit > 0 && settings.limit < images.length) return images.slice(0, settings.limit);
+    return images;
+  }
+
+  function orderEntries(): OrderEntry[] {
+    return selected().map((im) => ({ id: im.id, name: im.name, rotation: im.rotation ?? 0 }));
+  }
+
   async function handleFiles(files: FileList): Promise<void> {
-    // Start every decode synchronously within this event turn. Files from a
-    // native drag-and-drop are only reliably readable during the drop event; a
-    // sequential `await` loop reads later files a turn too late, so a multi-file
-    // drop imports only the first. createObjectURL pins the blob the same way.
+    // Read every file synchronously within this event turn. Files from a
+    // native drag-and-drop are only reliably readable during the drop event;
+    // postMessage clones the File data now, and createObjectURL pins the blob
+    // for the thumbnail the same way.
     const items = Array.from(files).map((file) => {
       const accepted = ACCEPTED.has(file.type);
       return {
         file,
         accepted,
+        id: crypto.randomUUID(),
         thumbUrl: accepted ? URL.createObjectURL(file) : "",
-        bitmap: accepted ? createImageBitmap(file) : null,
       };
     });
-
-    const loaded: LoadedImage[] = [];
     for (const item of items) {
-      if (!item.accepted) {
-        showToast("error", `Skipped ${item.file.name}: unsupported type`);
-        continue;
-      }
-      try {
-        const bitmap = await item.bitmap!;
-        loaded.push({ id: crypto.randomUUID(), name: item.file.name, bitmap, thumbUrl: item.thumbUrl });
-      } catch {
+      if (!item.accepted) showToast("error", `Skipped ${item.file.name}: unsupported type`);
+    }
+    const toLoad = items.filter((i) => i.accepted);
+    if (!toLoad.length) return;
+
+    const results = await bridge.load(
+      toLoad.map((i) => ({ id: i.id, name: i.file.name, blob: i.file })),
+    );
+    const byId = new Map(results.map((r) => [r.id, r]));
+    const loaded: LoadedImage[] = [];
+    for (const item of toLoad) {
+      const r = byId.get(item.id);
+      if (r?.ok) {
+        loaded.push({ id: item.id, name: item.file.name, thumbUrl: item.thumbUrl, width: r.width, height: r.height });
+      } else {
         URL.revokeObjectURL(item.thumbUrl);
         showToast("error", `Skipped ${item.file.name}: could not decode`);
       }
@@ -48,56 +65,6 @@ export function createController(store: Store) {
 
   // Which output file the preview is showing (square/masonry can span several).
   let previewIndex = 0;
-
-  // Memoizes the last rendered cell set, keyed by the inputs that affect it.
-  let cellCache: { sig: string; cells: OffscreenCanvas[] } | null = null;
-
-  // Applies the image limit. Order is the store's persisted order, mutated by
-  // drag-reorder and the shuffle action, so no render-time reshuffling.
-  function selected(): LoadedImage[] {
-    const { images, settings } = store.getState();
-    if (settings.limit > 0 && settings.limit < images.length) return images.slice(0, settings.limit);
-    return images;
-  }
-
-  async function buildPlansAndCells(scale: number) {
-    const { settings } = store.getState();
-    const imgs = selected();
-    // Scale grid dimensions with the cells so preview width and height stay
-    // consistent. perGrid/columns are counts and must not scale. scale === 1
-    // leaves settings untouched (full-resolution export, Go parity preserved).
-    const scaled = scale === 1 ? settings : {
-      ...settings,
-      gridWidth: Math.max(Math.round(settings.gridWidth * scale), 1),
-      maxGridHeight: Math.max(Math.round(settings.maxGridHeight * scale), 1),
-    };
-    const cellSize = Math.max(Math.floor(scaled.gridWidth / settings.columns), 1);
-
-    // Cell rendering (downscale + saliency crop) is the expensive step. It only
-    // depends on the images, crop framing, layout, and cell size, so cache it
-    // and reuse when cheap settings (border, labels, quality) change. This keeps
-    // border-slider drags from re-running the per-image pipeline.
-    const sig = [
-      settings.layout,
-      settings.cropMode,
-      cellSize,
-      imgs.map((im) => `${im.id}#${im.rotation ?? 0}`).join(","),
-    ].join("|");
-    let cells: OffscreenCanvas[];
-    if (cellCache && cellCache.sig === sig) {
-      cells = cellCache.cells;
-    } else {
-      cells = imgs.map((im) => renderCell(rotate(im.bitmap, im.rotation ?? 0), settings, cellSize));
-      cellCache = { sig, cells };
-    }
-    const names = imgs.map((im) => im.name);
-
-    const plans =
-      settings.layout === "masonry"
-        ? planMasonryGrids(cells.map((c) => c.height), cellSize, scaled)
-        : planSquareGrids(cells.length, cellSize, scaled);
-    return { plans, cells, names, settings };
-  }
 
   function clearPreview(): void {
     preview.getContext("2d")?.clearRect(0, 0, preview.width, preview.height);
@@ -112,44 +79,25 @@ export function createController(store: Store) {
     const err = validateSettings(settings);
     if (err) { setStatus(err); setPager(0, 0); return; }
 
-    // Preview scaled so the first grid fits a reasonable width.
     const scale = Math.min(1, 700 / settings.gridWidth);
     try {
-      const { plans, cells, names } = await buildPlansAndCells(scale);
-
-      previewIndex = Math.max(0, Math.min(previewIndex, plans.length - 1));
-      const plan = plans[previewIndex];
-      const canvas = renderPlan(plan, cells, settings, names);
+      const result = await bridge.preview(orderEntries(), settings, scale, previewIndex);
+      if (!result) return; // superseded by a newer preview
+      previewIndex = Math.max(0, Math.min(previewIndex, result.pageCount - 1));
       const ctx = preview.getContext("2d");
       if (!ctx) throw new Error("canvas 2d context unavailable");
-      preview.width = canvas.width;
-      preview.height = canvas.height;
-      ctx.drawImage(canvas, 0, 0);
+      preview.width = result.bitmap.width;
+      preview.height = result.bitmap.height;
+      ctx.drawImage(result.bitmap, 0, 0);
+      result.bitmap.close();
 
-      // Pager lets the user see every output file; the preview is only one of them.
-      setPager(previewIndex, plans.length);
-
-      // Report the true export dimensions. The preview is rendered at a reduced
-      // scale, so dividing the scaled plan back up loses a pixel to rounding
-      // (e.g. 900 reported as 899). Re-plan at full scale for exact numbers.
-      const trueCellSize = Math.max(Math.floor(settings.gridWidth / settings.columns), 1);
-      const truePlans =
-        settings.layout === "masonry"
-          ? planMasonryGrids(
-              cells.map((c) => Math.round((c.height / c.width) * trueCellSize)),
-              trueCellSize,
-              settings,
-            )
-          : planSquareGrids(cells.length, trueCellSize, settings);
-      const truePlan = truePlans[previewIndex] ?? plan;
-      const outW = truePlan.width;
-      const outH = truePlan.height;
-      const used = cells.length;
+      setPager(previewIndex, result.pageCount);
+      const used = orderEntries().length;
       const total = images.length;
       const imgLabel = used < total ? `${used} of ${total} images` : `${used} images`;
-      const fileLabel = plans.length === 1 ? "1 file" : `${plans.length} files`;
-      const base = `${imgLabel}  ·  ${fileLabel}  ·  ${outW} × ${outH}px`;
-      const sizeWarn = checkOutputSize(outW, outH);
+      const fileLabel = result.pageCount === 1 ? "1 file" : `${result.pageCount} files`;
+      const base = `${imgLabel}  ·  ${fileLabel}  ·  ${result.trueWidth} × ${result.trueHeight}px`;
+      const sizeWarn = checkOutputSize(result.trueWidth, result.trueHeight);
       setStatus(sizeWarn ? `${base}  ·  too large to export (max ${MAX_CANVAS_DIM}px)` : base);
     } catch (e) {
       setStatus(`Preview failed: ${(e as Error).message}`);
@@ -167,13 +115,18 @@ export function createController(store: Store) {
     store.sortByName(direction);
   }
 
+  function removeImage(index: number): void {
+    const im = store.getState().images[index];
+    if (!im) return;
+    URL.revokeObjectURL(im.thumbUrl);
+    void bridge.remove([im.id]);
+    store.removeImage(index);
+  }
+
   function reset(): void {
-    for (const im of store.getState().images) {
-      im.bitmap.close();
-      URL.revokeObjectURL(im.thumbUrl);
-    }
+    for (const im of store.getState().images) URL.revokeObjectURL(im.thumbUrl);
+    void bridge.reset();
     previewIndex = 0;
-    cellCache = null;
     store.reset(defaultSettings());
     rebuildSettings(store);
   }
@@ -197,25 +150,12 @@ export function createController(store: Store) {
     exporting = true;
     setBusy(true, 0);
     try {
-      const { plans, cells, names } = await buildPlansAndCells(1);
-      for (const p of plans) {
-        const sizeErr = checkOutputSize(p.width, p.height);
-        if (sizeErr) { showToast("error", sizeErr); return; }
-      }
-      const ext = settings.format === "png" ? "png" : "jpg";
-      const outputs: { blob: Blob; name: string }[] = [];
-      for (let i = 0; i < plans.length; i++) {
-        const canvas = renderPlan(plans[i], cells, settings, names);
-        const blob = await encode(canvas, settings.format, settings.quality);
-        outputs.push({ blob, name: `grid_${String(i + 1).padStart(3, "0")}.${ext}` });
-        setBusy(true, (i + 1) / plans.length);
-      }
+      const outputs = await bridge.exportAll(orderEntries(), settings, (done, total) =>
+        setBusy(true, done / total),
+      );
       await deliver(outputs);
     } catch (e) {
       const msg = (e as Error).message;
-      // A zero-size canvas means the browser refused the allocation despite the
-      // pre-check (e.g. memory pressure on a huge but in-range canvas). Add a
-      // hint so the raw DOM error is actionable.
       const hint = /size of .*is zero|allocat/i.test(msg)
         ? ` (grid too large to render; keep width and height under ${MAX_CANVAS_DIM}px)`
         : "";
@@ -246,7 +186,7 @@ export function createController(store: Store) {
     showToast("success", `Exported ${outputs.length} file(s) to your downloads`);
   }
 
-  return { handleFiles, renderPreview, exportComposite, shuffle, sortImages, showPreviewFile, reset };
+  return { handleFiles, renderPreview, exportComposite, shuffle, sortImages, showPreviewFile, reset, removeImage };
 }
 
 function downloadBlob(blob: Blob, filename: string): void {

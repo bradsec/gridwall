@@ -4,13 +4,18 @@ import { loadSettings, saveSettings } from "./state/persist";
 import { mountApp } from "./ui/app";
 import { createController } from "./controller";
 import { renderTray } from "./ui/tray";
+import { createBridge, createInlineBridge, supportsWorkerPipeline } from "./worker/bridge";
 
 const root = document.querySelector<HTMLDivElement>("#app")!;
 const store = new Store(loadSettings() ?? defaultSettings());
 
+const bridge = supportsWorkerPipeline()
+  ? createBridge(new Worker(new URL("./worker/grid.worker.ts", import.meta.url), { type: "module" }))
+  : createInlineBridge();
+
 let controller: ReturnType<typeof createController>;
 mountApp(root, store, () => void controller.exportComposite());
-controller = createController(store);
+controller = createController(store, bridge);
 
 const filesInput = root.querySelector<HTMLInputElement>("#files")!;
 filesInput.addEventListener("change", (e) => {
@@ -52,9 +57,9 @@ canvasHost.addEventListener("drop", (e) => {
 });
 
 // Tray + empty-state visibility track the image list.
-renderTray(store);
+renderTray(store, (i) => controller.removeImage(i));
 store.subscribe(() => {
-  renderTray(store);
+  renderTray(store, (i) => controller.removeImage(i));
   empty.style.display = store.getState().images.length ? "none" : "";
 });
 
