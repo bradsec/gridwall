@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { createBridge, type WorkerLike } from "./bridge";
+import { createBridge, createInlineBridge, type WorkerLike } from "./bridge";
 import type { WorkerRequest, WorkerResponse } from "./protocol";
+import type { Pipeline } from "./pipeline";
 import { defaultSettings } from "../state/store";
 
 // Fake worker: captures requests, lets the test emit responses.
@@ -66,8 +67,60 @@ describe("bridge", () => {
   it("resolves remove and reset acks", async () => {
     const { worker, sent, emit } = fakeWorker();
     const bridge = createBridge(worker);
-    const p = bridge.remove(["a"]);
+    const removeP = bridge.remove(["a"]);
     emit({ op: "done", jobId: sent[0].jobId });
-    await expect(p).resolves.toBeUndefined();
+    await expect(removeP).resolves.toBeUndefined();
+
+    const resetP = bridge.reset();
+    emit({ op: "done", jobId: sent[1].jobId });
+    await expect(resetP).resolves.toBeUndefined();
+  });
+});
+
+describe("inline bridge", () => {
+  function fakePipeline() {
+    const closed: number[] = [];
+    let previewCount = 0;
+    const resolvers: ((r: unknown) => void)[] = [];
+    const pipeline = {
+      load: async () => [],
+      preview: () =>
+        new Promise((resolve) => {
+          const n = ++previewCount;
+          resolvers.push((r) =>
+            resolve(
+              r ?? {
+                bitmap: { close: () => void closed.push(n) },
+                pageCount: n,
+                trueWidth: 1,
+                trueHeight: 1,
+              }
+            )
+          );
+        }),
+      exportAll: async () => [],
+      remove: () => undefined,
+      reset: () => undefined,
+    } as unknown as Pipeline;
+    return { pipeline, resolvers, closed };
+  }
+
+  it("discards a superseded preview and closes its bitmap", async () => {
+    const { pipeline, resolvers, closed } = fakePipeline();
+    const bridge = createInlineBridge(pipeline);
+    const first = bridge.preview(order, defaultSettings(), 1, 0);
+    const second = bridge.preview(order, defaultSettings(), 1, 0);
+    resolvers[0](undefined); // first finishes after being superseded
+    resolvers[1](undefined);
+    await expect(first).resolves.toBeNull();
+    await expect(second).resolves.toMatchObject({ pageCount: 2 });
+    expect(closed).toEqual([1]);
+  });
+
+  it("remove and reset resolve", async () => {
+    const { pipeline } = fakePipeline();
+    const bridge = createInlineBridge(pipeline);
+    await expect(bridge.remove(["a"])).resolves.toBeUndefined();
+    await expect(bridge.reset()).resolves.toBeUndefined();
   });
 });
