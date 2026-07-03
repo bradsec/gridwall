@@ -23,6 +23,11 @@ root.querySelector<HTMLButtonElement>("#shuffle")!.addEventListener("click", () 
 root.querySelector<HTMLButtonElement>("#prev")!.addEventListener("click", () => controller.showPreviewFile(-1));
 root.querySelector<HTMLButtonElement>("#next")!.addEventListener("click", () => controller.showPreviewFile(1));
 
+// A drop outside the canvas drop zone would otherwise navigate the tab to the
+// dropped file, discarding the whole in-memory session (nothing is persisted).
+window.addEventListener("dragover", (e) => e.preventDefault());
+window.addEventListener("drop", (e) => e.preventDefault());
+
 // Drag and drop onto the canvas.
 const canvasHost = root.querySelector<HTMLElement>("#canvas-host")!;
 const empty = root.querySelector<HTMLElement>("#empty")!;
