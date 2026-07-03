@@ -25,6 +25,15 @@ describe("validateSettings", () => {
     expect(validateSettings({ ...base(), limit: -1 })).not.toBeNull();
     expect(validateSettings({ ...base(), perGrid: -1 })).not.toBeNull();
   });
+  it("rejects fractional and NaN numeric fields", () => {
+    expect(validateSettings({ ...base(), columns: 3.5 })).not.toBeNull();
+    expect(validateSettings({ ...base(), columns: NaN })).not.toBeNull();
+    expect(validateSettings({ ...base(), gridWidth: 900.5 })).not.toBeNull();
+    expect(validateSettings({ ...base(), maxGridHeight: 0.5 })).not.toBeNull();
+    expect(validateSettings({ ...base(), limit: 1.2 })).not.toBeNull();
+    expect(validateSettings({ ...base(), perGrid: 2.5 })).not.toBeNull();
+    expect(validateSettings({ ...base(), borderThickness: 1.5 })).not.toBeNull();
+  });
   it("validates border settings", () => {
     expect(validateSettings({ ...base(), borderThickness: 10, borderColor: "#ABCDEF" })).toBeNull();
     expect(validateSettings({ ...base(), borderScope: "outside" })).toBeNull();

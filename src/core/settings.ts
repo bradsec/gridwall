@@ -15,6 +15,17 @@ export function checkOutputSize(width: number, height: number): string | null {
 }
 
 export function validateSettings(s: Settings): string | null {
+  // A fractional count corrupts layout math (row * cols + col becomes a
+  // non-integer array index and drawImage(undefined) throws), so reject rather
+  // than round. Number.isInteger also rejects NaN, which passes every <
+  // comparison below.
+  const wholes: [number, string][] = [
+    [s.columns, "columns"], [s.gridWidth, "grid width"], [s.maxGridHeight, "grid height"],
+    [s.limit, "limit"], [s.perGrid, "per-grid"], [s.borderThickness, "border thickness"],
+  ];
+  for (const [value, label] of wholes) {
+    if (!Number.isInteger(value)) return `${label} must be a whole number, got ${value}`;
+  }
   if (s.columns < 1) return `columns must be >= 1, got ${s.columns}`;
   if (s.gridWidth < 1) return `grid width must be >= 1, got ${s.gridWidth}`;
   if (s.maxGridHeight < 1) return `grid height must be >= 1, got ${s.maxGridHeight}`;
