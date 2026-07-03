@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cellSignature, scalePlan } from "./pipeline";
+import { cellSignature, scalePlan, createPipeline } from "./pipeline";
 import { defaultSettings } from "../state/store";
 import type { GridPlan } from "../core/compose";
 
@@ -44,5 +44,13 @@ describe("scalePlan", () => {
 
   it("returns the same geometry object shape at factor 1", () => {
     expect(scalePlan(plan, 1)).toEqual(plan);
+  });
+});
+
+describe("pipeline preview guards", () => {
+  it("rejects cleanly when there are no images", async () => {
+    await expect(createPipeline().preview([], defaultSettings(), 1, 0)).rejects.toThrow(
+      "no images to preview",
+    );
   });
 });

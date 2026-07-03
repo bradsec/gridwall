@@ -111,6 +111,7 @@ export function createPipeline(): Pipeline {
       const err = validateSettings(settings);
       if (err) throw new Error(err);
       const { plans, trueCellSize } = planFull(order, settings);
+      if (plans.length === 0) throw new Error("no images to preview");
       const index = Math.max(0, Math.min(previewIndex, plans.length - 1));
       const fullPlan = plans[index];
       const previewPlan = scalePlan(fullPlan, scale);
