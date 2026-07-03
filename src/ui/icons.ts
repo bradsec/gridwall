@@ -26,6 +26,21 @@ const ICONS: Record<string, Child[]> = {
     ["path", { d: "M3 3l7 7" }],
     ["path", { d: "M3 21l5-5" }],
   ],
+  // Down arrow + bars: narrowing bars = A-to-Z, widening bars = Z-to-A.
+  "sort-asc": [
+    ["path", { d: "M7 4v13" }],
+    ["path", { d: "M3.5 13.5L7 17l3.5-3.5" }],
+    ["path", { d: "M14 6h7" }],
+    ["path", { d: "M14 11h5" }],
+    ["path", { d: "M14 16h3" }],
+  ],
+  "sort-desc": [
+    ["path", { d: "M7 4v13" }],
+    ["path", { d: "M3.5 13.5L7 17l3.5-3.5" }],
+    ["path", { d: "M14 6h3" }],
+    ["path", { d: "M14 11h5" }],
+    ["path", { d: "M14 16h7" }],
+  ],
   "chevron-left": [["path", { d: "M15 18l-6-6 6-6" }]],
   "chevron-right": [["path", { d: "M9 18l6-6-6-6" }]],
   grip: [["path", { d: "M9 5v14" }], ["path", { d: "M15 5v14" }]],

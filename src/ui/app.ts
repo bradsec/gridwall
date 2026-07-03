@@ -58,6 +58,8 @@ export function mountApp(root: HTMLElement, store: Store, onExport: () => void):
           <h2>Images</h2>
           <span class="count-chip" id="count">0</span>
           <span class="spacer"></span>
+          <button class="icon-btn" id="sort-asc" type="button" title="Sort A to Z" aria-label="Sort A to Z"></button>
+          <button class="icon-btn" id="sort-desc" type="button" title="Sort Z to A" aria-label="Sort Z to A"></button>
           <button class="icon-btn" id="shuffle" type="button" title="Shuffle order" aria-label="Shuffle order"></button>
         </div>
         <ul class="thumbs" id="thumbs"></ul>
@@ -98,6 +100,8 @@ export function mountApp(root: HTMLElement, store: Store, onExport: () => void):
   prependIcon(root.querySelector<HTMLElement>("#add")!, "plus");
   prependIcon(root.querySelector<HTMLElement>("#export")!, "download");
   root.querySelector("#shuffle")!.appendChild(icon("shuffle"));
+  root.querySelector("#sort-asc")!.appendChild(icon("sort-asc"));
+  root.querySelector("#sort-desc")!.appendChild(icon("sort-desc"));
   root.querySelector("#prev")!.appendChild(icon("chevron-left"));
   root.querySelector("#next")!.appendChild(icon("chevron-right"));
 

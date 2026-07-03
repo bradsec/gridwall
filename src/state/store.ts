@@ -94,6 +94,16 @@ export class Store {
     this.notify();
   }
 
+  // Sorts by filename, numeric-aware (img2 before img10), case-insensitive.
+  // Like shuffle, the new order is the persisted order.
+  sortByName(direction: "asc" | "desc"): void {
+    const sign = direction === "asc" ? 1 : -1;
+    this.images = [...this.images].sort(
+      (a, b) => sign * a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }),
+    );
+    this.notify();
+  }
+
   // Permutes the image order. The new order is the persisted order, so the tray
   // and the composite both reflect it (shuffle is an action, not a render-time
   // transform that would re-roll on every settings change).

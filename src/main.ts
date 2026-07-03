@@ -20,6 +20,8 @@ filesInput.addEventListener("change", (e) => {
 
 root.querySelector<HTMLButtonElement>("#reset")!.addEventListener("click", () => controller.reset());
 root.querySelector<HTMLButtonElement>("#shuffle")!.addEventListener("click", () => controller.shuffle());
+root.querySelector<HTMLButtonElement>("#sort-asc")!.addEventListener("click", () => controller.sortImages("asc"));
+root.querySelector<HTMLButtonElement>("#sort-desc")!.addEventListener("click", () => controller.sortImages("desc"));
 root.querySelector<HTMLButtonElement>("#prev")!.addEventListener("click", () => controller.showPreviewFile(-1));
 root.querySelector<HTMLButtonElement>("#next")!.addEventListener("click", () => controller.showPreviewFile(1));
 

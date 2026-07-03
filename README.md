@@ -9,7 +9,7 @@ Image grids and masonry walls in your browser. Gridwall resizes images and build
 - Masonry layout that preserves aspect ratio
 - Optional filename labels on cells
 - Optional border with adjustable thickness and hex color, applied to each image or the whole grid
-- Reorder images by drag, shuffle, or rotate (90 degree steps), with live preview
+- Reorder images by drag, shuffle, filename sort (A to Z or Z to A), or rotate (90 degree steps), with live preview
 - Per-image decode skip-and-continue on error
 - Multi-file split by height limit, with a file pager in the preview
 - JPEG and PNG output with adjustable JPEG quality

@@ -162,6 +162,11 @@ export function createController(store: Store) {
     store.shuffle(Math.random);
   }
 
+  function sortImages(direction: "asc" | "desc"): void {
+    previewIndex = 0;
+    store.sortByName(direction);
+  }
+
   function reset(): void {
     for (const im of store.getState().images) {
       im.bitmap.close();
@@ -241,7 +246,7 @@ export function createController(store: Store) {
     showToast("success", `Exported ${outputs.length} file(s) to your downloads`);
   }
 
-  return { handleFiles, renderPreview, exportComposite, shuffle, showPreviewFile, reset };
+  return { handleFiles, renderPreview, exportComposite, shuffle, sortImages, showPreviewFile, reset };
 }
 
 function downloadBlob(blob: Blob, filename: string): void {

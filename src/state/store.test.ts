@@ -27,4 +27,22 @@ describe("Store", () => {
     expect(calls).toBe(3); // no notify after unsubscribe
     expect(store.getState().settings.columns).toBe(5);
   });
+
+  it("sorts by filename numeric-aware and case-insensitive, both directions", () => {
+    const store = new Store(defaultSettings());
+    let calls = 0;
+    store.subscribe(() => calls++);
+    store.addImages([img("img10.png"), img("IMG2.png"), img("beta.png"), img("img1.png")]);
+
+    store.sortByName("asc");
+    expect(store.getState().images.map((i) => i.name)).toEqual([
+      "beta.png", "img1.png", "IMG2.png", "img10.png",
+    ]);
+
+    store.sortByName("desc");
+    expect(store.getState().images.map((i) => i.name)).toEqual([
+      "img10.png", "IMG2.png", "img1.png", "beta.png",
+    ]);
+    expect(calls).toBe(3);
+  });
 });
