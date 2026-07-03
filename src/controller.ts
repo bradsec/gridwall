@@ -178,12 +178,18 @@ export function createController(store: Store) {
     void renderPreview();
   }
 
+  // encode() yields to the event loop, so a second Export click mid-run would
+  // start an overlapping job (and a second concurrent navigator.share rejects).
+  let exporting = false;
+
   async function exportComposite(): Promise<void> {
+    if (exporting) return;
     const { images, settings } = store.getState();
     if (!images.length) { showToast("error", "No images loaded"); return; }
     const err = validateSettings(settings);
     if (err) { showToast("error", err); return; }
 
+    exporting = true;
     setBusy(true, 0);
     try {
       const { plans, cells, names } = await buildPlansAndCells(1);
@@ -210,6 +216,7 @@ export function createController(store: Store) {
         : "";
       showToast("error", `Export failed: ${msg}${hint}`);
     } finally {
+      exporting = false;
       setBusy(false);
     }
   }
