@@ -45,6 +45,39 @@ describe("scalePlan", () => {
   it("returns the same geometry object shape at factor 1", () => {
     expect(scalePlan(plan, 1)).toEqual(plan);
   });
+
+  it("preserves shared edges after scaling (no seams)", () => {
+    // 900px grid, 3 columns of 300 -> factor 700/900 used to open a 1px gap
+    // before the third column (466 vs 467).
+    const plan: GridPlan = {
+      width: 900,
+      height: 300,
+      cells: [
+        { srcIndex: 0, dx: 0, dy: 0, w: 300, h: 300 },
+        { srcIndex: 1, dx: 300, dy: 0, w: 300, h: 300 },
+        { srcIndex: 2, dx: 600, dy: 0, w: 300, h: 300 },
+      ],
+    } as GridPlan;
+    const p = scalePlan(plan, 700 / 900);
+    for (let i = 1; i < p.cells.length; i++) {
+      expect(p.cells[i].dx).toBe(p.cells[i - 1].dx + p.cells[i - 1].w);
+    }
+    // Last cell reaches the scaled plan edge exactly.
+    const last = p.cells[p.cells.length - 1];
+    expect(last.dx + last.w).toBe(p.width);
+    // Vertical: stacked cells share edges too.
+    const col: GridPlan = {
+      width: 300,
+      height: 1000,
+      cells: [
+        { srcIndex: 0, dx: 0, dy: 0, w: 300, h: 433 },
+        { srcIndex: 1, dx: 0, dy: 433, w: 300, h: 567 },
+      ],
+    } as GridPlan;
+    const q = scalePlan(col, 700 / 900);
+    expect(q.cells[1].dy).toBe(q.cells[0].dy + q.cells[0].h);
+    expect(q.cells[1].dy + q.cells[1].h).toBe(q.height);
+  });
 });
 
 describe("pipeline preview guards", () => {

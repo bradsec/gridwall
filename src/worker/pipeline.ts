@@ -23,16 +23,19 @@ export function cellSignature(settings: Settings, cellSize: number, order: Order
 
 export function scalePlan(plan: GridPlan, factor: number): GridPlan {
   if (factor === 1) return plan;
+  // Round edges, not sizes: cells that share an edge at full scale must share
+  // it after scaling, or 1px background seams open between columns/rows.
+  const e = (v: number) => Math.round(v * factor);
   return {
     ...plan,
-    width: Math.max(Math.round(plan.width * factor), 1),
-    height: Math.max(Math.round(plan.height * factor), 1),
+    width: Math.max(e(plan.width), 1),
+    height: Math.max(e(plan.height), 1),
     cells: plan.cells.map((c) => ({
       ...c,
-      dx: Math.round(c.dx * factor),
-      dy: Math.round(c.dy * factor),
-      w: Math.max(Math.round(c.w * factor), 1),
-      h: Math.max(Math.round(c.h * factor), 1),
+      dx: e(c.dx),
+      dy: e(c.dy),
+      w: Math.max(e(c.dx + c.w) - e(c.dx), 1),
+      h: Math.max(e(c.dy + c.h) - e(c.dy), 1),
     })),
   };
 }
