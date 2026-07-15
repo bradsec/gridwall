@@ -40,16 +40,28 @@ export function showToast(kind: "error" | "success", msg: string): void {
 export function mountApp(root: HTMLElement, store: Store, onExport: () => void): void {
   root.innerHTML = `
     <div class="layout">
-      <header class="topbar">
-        <div class="brand">
-          <img class="logo" src="android-chrome-192x192.png" alt="Gridwall logo" width="18" height="18" />
-          <h1>Gridwall</h1>
-          <span class="tagline">Image Grids &amp; Masonry Walls</span>
+      <header class="app-header">
+        <div class="menubar">
+          <h1 class="brand" aria-label="Gridwall home"><span class="brand-mark">gw</span><span>gridwall</span></h1>
+          <details class="app-menu"><summary>File</summary><div class="menu-popover">
+            <label for="files">Add images<span>Ctrl+O</span></label>
+            <button type="button" data-action="export">Export grid<span>Ctrl+E</span></button>
+            <hr>
+            <button type="button" id="reset">Reset workspace</button>
+          </div></details>
+          <details class="app-menu"><summary>Arrange</summary><div class="menu-popover">
+            <button type="button" data-action="shuffle">Shuffle images</button>
+            <button type="button" data-action="sort-asc">Sort A to Z</button>
+            <button type="button" data-action="sort-desc">Sort Z to A</button>
+          </div></details>
+          <details class="app-menu"><summary>Help</summary><div class="menu-popover">
+            <button type="button" data-action="about">About gridwall</button>
+          </div></details>
         </div>
-        <span class="spacer"></span>
-        <button class="btn ghost" id="reset" type="button" aria-label="Reset" title="Reset"><span class="btn-label">Reset</span></button>
-        <label class="btn secondary" id="add" for="files" aria-label="Add images" title="Add images"><span class="btn-label">Add images</span></label>
-        <button class="btn primary" id="export" type="button" aria-label="Export" title="Export"><span class="btn-label">Export</span></button>
+        <div class="topbar-actions" role="group" aria-label="Quick actions">
+          <label class="icon-button" id="add" for="files" aria-label="Add images" title="Add images"><span class="btn-label">Add images</span></label>
+          <button class="primary-action" id="export" type="button" aria-label="Export grid" title="Export grid"><span class="btn-label">Export</span></button>
+        </div>
         <input id="files" type="file" accept="image/png,image/jpeg" multiple class="visually-hidden" />
       </header>
 
@@ -93,6 +105,17 @@ export function mountApp(root: HTMLElement, store: Store, onExport: () => void):
         </a>
         <span class="app-version">v${__APP_VERSION__}</span>
       </footer>
+      <dialog id="about-dialog" aria-labelledby="about-title">
+        <form method="dialog" class="dialog-form">
+          <div class="dialog-heading"><h2 id="about-title">About gridwall</h2><p>Version ${__APP_VERSION__}</p></div>
+          <p>Create image grids and masonry walls locally in your browser. Your images are not uploaded.</p>
+          <p>Created by Mark Bradley (<a href="https://github.com/bradsec" target="_blank" rel="noopener noreferrer">BRADSEC</a>).</p>
+          <a class="about-repo-link" href="https://github.com/bradsec/gridwall" target="_blank" rel="noopener noreferrer">View gridwall on GitHub</a>
+          <p class="about-support-copy">Found gridwall useful? Support the creator.</p>
+          <a class="about-repo-link" href="https://buymeacoffee.com/markbradley" target="_blank" rel="noopener noreferrer">Buy me a coffee</a>
+          <div class="dialog-actions"><button value="close">Close</button></div>
+        </form>
+      </dialog>
     </div>`;
 
   statusEl = root.querySelector("#status")!;
@@ -111,9 +134,42 @@ export function mountApp(root: HTMLElement, store: Store, onExport: () => void):
 
   buildSettings(root.querySelector("#settings")!, store);
 
-  root.querySelector<HTMLButtonElement>("#export")!.addEventListener("click", onExport);
+  for (const button of root.querySelectorAll<HTMLButtonElement>('#export, [data-action="export"]')) {
+    button.addEventListener("click", onExport);
+  }
+  root.querySelector<HTMLButtonElement>('[data-action="about"]')!.addEventListener("click", () => {
+    root.querySelector<HTMLDialogElement>("#about-dialog")!.showModal();
+  });
+  setupMenus(root);
   // Add images / Browse files are <label for="files">, so the browser opens the
   // file picker natively. No programmatic input.click(), which Chrome can drop.
+}
+
+function setupMenus(root: HTMLElement): void {
+  const menus = [...root.querySelectorAll<HTMLDetailsElement>("details.app-menu")];
+  const closeMenus = (except?: HTMLDetailsElement) => {
+    for (const menu of menus) if (menu !== except) menu.open = false;
+  };
+
+  for (const menu of menus) {
+    menu.addEventListener("toggle", () => { if (menu.open) closeMenus(menu); });
+    menu.querySelector("summary")?.addEventListener("pointerenter", (event) => {
+      if (event.pointerType === "mouse" && !menu.open && menus.some((other) => other.open)) menu.open = true;
+    });
+  }
+  root.addEventListener("click", (event) => {
+    if (!(event.target instanceof Element) || !event.target.closest(".menu-popover button, .menu-popover label")) return;
+    closeMenus();
+  });
+  document.addEventListener("pointerdown", (event) => {
+    if (!(event.target instanceof Element) || !event.target.closest(".app-menu")) closeMenus();
+  }, { capture: true });
+  window.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    const activeMenu = menus.find((menu) => menu.open && menu.contains(document.activeElement));
+    closeMenus();
+    activeMenu?.querySelector<HTMLElement>("summary")?.focus({ preventScroll: true });
+  });
 }
 
 function prependIcon(btn: HTMLElement, name: "plus" | "download" | "rotate"): void {

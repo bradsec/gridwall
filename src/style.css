@@ -1,25 +1,25 @@
-/* Gridwall - dark precise-tool UI. One indigo accent, one radius scale. */
+/* Gridwall - compact desktop-tool UI shared with imagemarkup. */
 :root {
-  --bg: #141517;
-  --surface-1: #1b1d20;
-  --surface-2: #232529;
-  --surface-3: #2b2e33;
-  --border: #2e3136;
-  --border-strong: #3b3f45;
-  --text: #eceef0;
-  --text-dim: #9b9fa6;
-  --text-faint: #6b6f76;
+  --bg: #17191d;
+  --surface-1: #1e2125;
+  --surface-2: #22252a;
+  --surface-3: #2a2e34;
+  --border: #3a3f47;
+  --border-strong: #505761;
+  --text: #f0f2f4;
+  --text-dim: #b5bac2;
+  --text-faint: #9aa1ab;
   --accent: #6d5bfa;
   --accent-hover: #8678fb;
   --accent-press: #5447d8;
-  --accent-soft: rgba(109, 91, 250, 0.16);
+  --accent-soft: rgb(109 91 250 / 18%);
   --error: #e5675b;
   --success: #57b98a;
-  --r: 8px;
-  --r-sm: 6px;
+  --r: 4px;
+  --r-sm: 4px;
   --r-pill: 999px;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-  --ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+  --ring: 0 0 0 2px var(--bg), 0 0 0 4px #aaa2ff;
   --ease: cubic-bezier(0.2, 0.8, 0.3, 1);
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color-scheme: dark;
@@ -39,7 +39,7 @@ body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 
 /* ---------- App shell ---------- */
 .layout {
   display: grid;
-  grid-template-rows: 56px 1fr 30px;
+  grid-template-rows: 46px 1fr 26px;
   grid-template-columns: 248px minmax(0, 1fr) 300px;
   grid-template-areas: "top top top" "rail canvas panel" "status status status";
   height: 100dvh;
@@ -48,14 +48,40 @@ body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 
    the page (default grid/flex min-width is auto, which causes overflow). */
 .rail, .canvas-host, .settings, .thumbs { min-width: 0; }
 
-/* ---------- Topbar ---------- */
-.topbar { grid-area: top; display: flex; align-items: center; gap: 12px;
-  padding: 0 16px; background: var(--surface-1); border-bottom: 1px solid var(--border); }
-.brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
-.brand .logo { width: 18px; height: 18px; border-radius: 5px; flex-shrink: 0;
-  align-self: center; object-fit: cover; display: block; }
-.brand h1 { margin: 0; font-size: 16px; font-weight: 650; letter-spacing: -0.01em; }
-.brand .tagline { font-size: 12px; color: var(--text-faint); white-space: nowrap; }
+/* ---------- App header and menus ---------- */
+.app-header { grid-area: top; position: relative; z-index: 20; display: flex; min-width: 0;
+  align-items: center; gap: 12px; padding: 0 10px; background: var(--surface-1);
+  border-bottom: 1px solid #0f1114; box-shadow: inset 0 -1px rgb(255 255 255 / 4%); }
+.menubar, .topbar-actions { display: flex; min-width: 0; align-items: center; }
+.menubar { height: 100%; gap: 2px; }
+.brand { display: inline-flex; align-items: center; gap: 7px; min-width: 0; margin: 0 6px 0 0;
+  color: var(--text-dim); font-size: 12px; font-weight: 600; }
+.brand-mark { display: grid; width: 23px; height: 23px; place-items: center; border: 1px solid var(--accent-hover);
+  border-radius: var(--r); color: #aaa2ff; font-size: 11px; font-weight: 650; letter-spacing: -.04em; }
+.app-menu { position: relative; height: 100%; }
+.app-menu summary { display: flex; height: 100%; align-items: center; padding: 0 8px; border-radius: var(--r);
+  color: var(--text-dim); list-style: none; user-select: none; cursor: pointer; }
+.app-menu summary::-webkit-details-marker { display: none; }
+.app-menu summary:hover, .app-menu[open] summary { background: var(--surface-3); color: var(--text); }
+.menu-popover { position: absolute; top: calc(100% - 4px); left: 0; display: grid; width: max-content;
+  max-width: calc(100vw - 16px); padding: 5px; border: 1px solid var(--border-strong); border-radius: 6px;
+  background: #282c31; box-shadow: 0 14px 36px rgb(0 0 0 / 45%); }
+.menu-popover button, .menu-popover > a, .menu-popover > label { display: flex; width: 100%; min-height: 30px;
+  align-items: center; justify-content: space-between; gap: 24px; padding: 5px 8px; border: 0;
+  border-radius: var(--r); background: transparent; color: inherit; font: inherit; text-align: left;
+  text-decoration: none; white-space: nowrap; cursor: pointer; }
+.menu-popover button:hover, .menu-popover > a:hover, .menu-popover > label:hover { background: var(--accent-press); color: #f7fbfd; }
+.menu-popover button span, .menu-popover label span { color: var(--text-faint); font-size: 11px; }
+.menu-popover button:hover span, .menu-popover label:hover span { color: #e4e0ff; }
+.menu-popover hr { width: 100%; margin: 4px 0; border: 0; border-top: 1px solid var(--border); }
+.topbar-actions { gap: 4px; margin-left: auto; }
+.icon-button, .primary-action { display: inline-flex; min-height: 30px; align-items: center; justify-content: center;
+  gap: 6px; padding: 4px 9px; border: 1px solid var(--border); border-radius: var(--r);
+  background: var(--surface-3); color: var(--text-dim); font: inherit; white-space: nowrap; cursor: pointer; }
+.icon-button:hover { border-color: var(--border-strong); background: #343941; color: var(--text); }
+.primary-action { margin-left: 6px; padding-inline: 12px; border-color: var(--accent); background: var(--accent-press);
+  color: #f7fbfd; font-weight: 650; }
+.primary-action:hover { border-color: var(--accent-hover); background: #6152e5; }
 .spacer { flex: 1; }
 
 /* ---------- Buttons ---------- */
@@ -212,10 +238,26 @@ select { appearance: none; cursor: pointer; padding-right: 30px;
 
 /* ---------- Status bar ---------- */
 .statusbar { grid-area: status; display: flex; align-items: center; gap: 14px; padding: 0 16px;
-  background: var(--surface-1); border-top: 1px solid var(--border); color: var(--text-dim);
-  font-size: 12px; font-variant-numeric: tabular-nums; }
+  background: var(--surface-1); border-top: 1px solid #101216; color: var(--text-dim);
+  font-size: 11px; font-variant-numeric: tabular-nums; }
 .statusbar .repo-link { display: flex; align-items: center; gap: 6px; color: var(--text-dim); text-decoration: none; }
 .statusbar .repo-link:hover { color: var(--accent); }
+
+dialog { width: min(400px, calc(100% - 28px)); max-height: calc(100dvh - 40px); margin: auto; padding: 0;
+  overflow: auto; border: 1px solid var(--border-strong); border-radius: 8px; background: #25292e;
+  color: var(--text); box-shadow: 0 24px 70px rgb(0 0 0 / 60%); }
+dialog::backdrop { background: rgb(7 9 12 / 72%); }
+.dialog-form { display: grid; gap: 15px; padding: 20px; }
+.dialog-form p { margin: 0; color: var(--text-dim); }
+.dialog-heading { display: grid; gap: 4px; }
+.dialog-heading h2, .dialog-heading p { margin: 0; }
+.dialog-heading h2 { font-size: 18px; font-weight: 650; }
+.dialog-heading p { color: var(--text-dim); font-size: 12px; }
+.about-repo-link, .dialog-form a { color: var(--accent-hover); text-decoration: none; }
+.about-repo-link:hover, .dialog-form a:hover { text-decoration: underline; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 3px; }
+.dialog-actions button { padding: 7px 12px; border: 1px solid var(--border); border-radius: var(--r);
+  background: var(--surface-3); color: var(--text); }
 
 /* ---------- Progress + toasts ---------- */
 .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--surface-2); }
@@ -230,9 +272,9 @@ select { appearance: none; cursor: pointer; padding-right: 30px;
 
 /* ---------- Mobile ---------- */
 @media (max-width: 880px) {
-  .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: 56px auto minmax(220px, 1fr) auto 30px;
+  .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: 46px auto minmax(220px, 1fr) auto 26px;
     grid-template-areas: "top" "rail" "canvas" "panel" "status"; height: auto; min-height: 100dvh; }
-  .brand .tagline { display: none; }
+  .brand > span:last-child { display: none; }
   .rail { border-right: none; border-bottom: 1px solid var(--border); }
   .rail-head { padding: 10px 14px 8px; }
   .thumbs { flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 0 12px 12px; }
@@ -249,8 +291,11 @@ select { appearance: none; cursor: pointer; padding-right: 30px;
 }
 
 @media (max-width: 560px) {
-  .topbar .btn { padding: 7px; gap: 0; }
-  .topbar .btn-label { display: none; }
+  .app-header { gap: 4px; padding-inline: 7px; }
+  .app-menu summary { padding-inline: 7px; }
+  .topbar-actions { gap: 2px; }
+  .icon-button, .primary-action { min-width: 30px; padding-inline: 7px; }
+  .topbar-actions .btn-label { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
