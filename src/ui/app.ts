@@ -111,8 +111,7 @@ export function mountApp(root: HTMLElement, store: Store, onExport: () => void):
           <p>Create image grids and masonry walls locally in your browser. Your images are not uploaded.</p>
           <p>Created by Mark Bradley (<a href="https://github.com/bradsec" target="_blank" rel="noopener noreferrer">BRADSEC</a>).</p>
           <a class="about-repo-link" href="https://github.com/bradsec/gridwall" target="_blank" rel="noopener noreferrer">View gridwall on GitHub</a>
-          <p class="about-support-copy">Found gridwall useful? Support the creator.</p>
-          <a class="about-repo-link" href="https://buymeacoffee.com/markbradley" target="_blank" rel="noopener noreferrer">Buy me a coffee</a>
+          <p class="about-support-copy">If you find this useful, please consider starring the repository. It helps others discover the project.</p>
           <div class="dialog-actions"><button value="close">Close</button></div>
         </form>
       </dialog>
