@@ -29,9 +29,18 @@ export function renderTray(store: Store, onRemove: (index: number) => void): voi
     const grip = document.createElement("button");
     grip.className = "thumb-grip";
     grip.type = "button";
-    grip.title = "Drag to reorder";
-    grip.setAttribute("aria-label", "Drag to reorder " + image.name);
+    grip.title = "Drag or use Left and Right Arrow keys to reorder";
+    grip.setAttribute("aria-label", `Move ${image.name}, ${i + 1} of ${images.length}. Use Left and Right Arrow keys to reorder`);
     grip.appendChild(icon("grip", 14));
+
+    grip.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault();
+      const to = i + (e.key === "ArrowLeft" ? -1 : 1);
+      if (to < 0 || to >= images.length) return;
+      store.reorder(i, to);
+      (host.children[to]?.firstElementChild as HTMLButtonElement | null)?.focus();
+    });
 
     grip.addEventListener("pointerdown", (e) => {
       e.preventDefault();

@@ -9,7 +9,7 @@ Image grids and masonry walls in your browser. Gridwall resizes images and build
 - Masonry layout that preserves aspect ratio
 - Optional filename labels on cells
 - Optional border with adjustable thickness and hex color, applied to each image or the whole grid
-- Reorder images by drag, shuffle, filename sort (A to Z or Z to A), or rotate (90 degree steps), with live preview
+- Reorder images by drag, keyboard arrows, shuffle, filename sort (A to Z or Z to A), or rotate (90 degree steps), with live preview
 - Per-image decode skip-and-continue on error
 - Multi-file split by height limit, with a file pager in the preview
 - JPEG and PNG output with adjustable JPEG quality
@@ -134,6 +134,7 @@ The Compose mode in the UI creates grids or masonry layouts from multiple images
 
 - **Shuffle**: button in the Images panel; reshuffles the image order on each press
 - **Drag handle**: reorder a single image by dragging its grip (works with touch and mouse)
+- **Keyboard**: focus an image's grip and press Left or Right Arrow to move it one place; focus follows the image
 - **Rotate**: rotate an individual image in 90 degree steps; applies to preview and export
 - **Remove**: drop a single image
 - **Reset**: clear all images and restore default settings

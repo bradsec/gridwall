@@ -83,6 +83,18 @@ describe("bridge", () => {
     expect(() => emit({ op: "done", jobId: staleJobId })).not.toThrow();
   });
 
+  it("does not deliver progress after a synchronous send failure", async () => {
+    const { worker, emit } = fakeWorker();
+    worker.postMessage = () => { throw new Error("send failed"); };
+    const bridge = createBridge(worker);
+    const progress: number[] = [];
+
+    await expect(bridge.exportAll(order, defaultSettings(), (done) => progress.push(done)))
+      .rejects.toThrow("send failed");
+    emit({ op: "exportProgress", jobId: 1, done: 1, total: 2 });
+    expect(progress).toEqual([]);
+  });
+
   it("resolves remove and reset acks", async () => {
     const { worker, sent, emit } = fakeWorker();
     const bridge = createBridge(worker);

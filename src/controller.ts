@@ -10,6 +10,7 @@ const ACCEPTED = new Set(["image/png", "image/jpeg"]);
 export function createController(store: Store, bridge: Bridge) {
   const preview = document.querySelector<HTMLCanvasElement>("#preview")!;
   const empty = document.querySelector<HTMLElement>("#empty")!;
+  let resetEpoch = 0;
 
   // Applies the image limit. Order is the store's persisted order, mutated by
   // drag-reorder and the shuffle action, so no render-time reshuffling.
@@ -24,6 +25,7 @@ export function createController(store: Store, bridge: Bridge) {
   }
 
   async function handleFiles(files: FileList): Promise<void> {
+    const epoch = resetEpoch;
     // Read every file synchronously within this event turn. Files from a
     // native drag-and-drop are only reliably readable during the drop event;
     // postMessage clones the File data now, and createObjectURL pins the blob
@@ -50,7 +52,12 @@ export function createController(store: Store, bridge: Bridge) {
       );
     } catch (e) {
       for (const item of toLoad) URL.revokeObjectURL(item.thumbUrl);
-      showToast("error", `Import failed: ${(e as Error).message}`);
+      if (epoch === resetEpoch) showToast("error", `Import failed: ${(e as Error).message}`);
+      return;
+    }
+    if (epoch !== resetEpoch) {
+      for (const item of toLoad) URL.revokeObjectURL(item.thumbUrl);
+      void bridge.remove(results.filter((r) => r.ok).map((r) => r.id)).catch(() => undefined);
       return;
     }
     const byId = new Map(results.map((r) => [r.id, r]));
@@ -81,6 +88,7 @@ export function createController(store: Store, bridge: Bridge) {
   }
 
   async function renderPreview(): Promise<void> {
+    const epoch = resetEpoch;
     const { images, settings } = store.getState();
     if (!images.length) { clearPreview(); setStatus("No images yet"); return; }
     const err = validateSettings(settings);
@@ -90,6 +98,7 @@ export function createController(store: Store, bridge: Bridge) {
     try {
       const result = await bridge.preview(orderEntries(), settings, scale, previewIndex);
       if (!result) return; // superseded by a newer preview
+      if (epoch !== resetEpoch) { result.bitmap.close(); return; }
       previewIndex = Math.max(0, Math.min(previewIndex, result.pageCount - 1));
       const ctx = preview.getContext("2d");
       if (!ctx) throw new Error("canvas 2d context unavailable");
@@ -107,6 +116,7 @@ export function createController(store: Store, bridge: Bridge) {
       const sizeWarn = checkOutputSize(result.trueWidth, result.trueHeight);
       setStatus(sizeWarn ? `${base}  ·  too large to export (max ${MAX_CANVAS_DIM}px)` : base);
     } catch (e) {
+      if (epoch !== resetEpoch) return;
       setStatus(`Preview failed: ${(e as Error).message}`);
       setPager(0, 0);
     }
@@ -132,6 +142,7 @@ export function createController(store: Store, bridge: Bridge) {
   }
 
   function reset(): void {
+    resetEpoch++;
     for (const im of store.getState().images) URL.revokeObjectURL(im.thumbUrl);
     // worker teardown failures have no user-actionable surface
     void bridge.reset().catch(() => undefined);

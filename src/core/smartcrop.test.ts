@@ -14,6 +14,18 @@ function makeView(w: number, h: number, fill: (x: number, y: number) => [number,
 }
 
 describe("findInterestingArea", () => {
+  it("scans the long axis when the short axis equals crop size", () => {
+    const portrait = makeView(2, 4, (x, y) => {
+      const value = y >= 2 && (x + y) % 2 === 0 ? 255 : 0;
+      return [value, value, value];
+    });
+    const landscape = makeView(4, 2, (x, y) => {
+      const value = x >= 2 && (x + y) % 2 === 0 ? 255 : 0;
+      return [value, value, value];
+    });
+    expect(findInterestingArea(portrait, 2)).toEqual({ x: 0, y: 2 });
+    expect(findInterestingArea(landscape, 2)).toEqual({ x: 2, y: 0 });
+  });
   it("is deterministic and in-bounds", () => {
     const v = makeView(120, 80, (x, y) => [x % 256, y % 256, 128]);
     const a = findInterestingArea(v, 40);

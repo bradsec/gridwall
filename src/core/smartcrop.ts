@@ -71,7 +71,7 @@ const STRIDE = 2;
 
 export function findInterestingArea(img: PixelView, size: number): { x: number; y: number } {
   const { width: w, height: h } = img;
-  if (w <= size || h <= size) return { x: 0, y: 0 };
+  if (w < size || h < size || (w === size && h === size)) return { x: 0, y: 0 };
 
   const planes = channelPlanes(img);
   const sats = {

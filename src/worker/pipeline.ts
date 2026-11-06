@@ -54,6 +54,7 @@ export interface Pipeline {
 
 export function createPipeline(): Pipeline {
   const bitmaps = new Map<string, ImageBitmap>();
+  let loadEpoch = 0;
   let cellCache: { sig: string; cells: OffscreenCanvas[] } | null = null;
 
   // Rotated source dimensions for an order entry (90/270 swap w/h).
@@ -97,16 +98,23 @@ export function createPipeline(): Pipeline {
 
   return {
     async load(files) {
+      const epoch = loadEpoch;
       const results: LoadResult[] = [];
       for (const f of files) {
         try {
+          if (epoch !== loadEpoch) break;
           const bm = await createImageBitmap(f.blob);
+          if (epoch !== loadEpoch) {
+            bm.close();
+            break;
+          }
           bitmaps.set(f.id, bm);
           results.push({ id: f.id, ok: true, width: bm.width, height: bm.height });
         } catch {
           results.push({ id: f.id, ok: false, width: 0, height: 0 });
         }
       }
+      if (epoch !== loadEpoch) return files.map((f) => ({ id: f.id, ok: false, width: 0, height: 0 }));
       return results;
     },
 
@@ -160,6 +168,7 @@ export function createPipeline(): Pipeline {
     },
 
     reset() {
+      loadEpoch++;
       for (const bm of bitmaps.values()) bm.close();
       bitmaps.clear();
       cellCache = null;

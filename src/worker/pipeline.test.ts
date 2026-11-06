@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { cellSignature, scalePlan, createPipeline } from "./pipeline";
 import { defaultSettings } from "../state/store";
 import type { GridPlan } from "../core/compose";
@@ -86,4 +86,22 @@ describe("pipeline preview guards", () => {
       "no images to preview",
     );
   });
+});
+
+it("closes a decode completed after Reset without retaining it", async () => {
+  const finishes: ((bitmap: ImageBitmap) => void)[] = [];
+  vi.stubGlobal("createImageBitmap", () => new Promise<ImageBitmap>((resolve) => finishes.push(resolve)));
+  const pipeline = createPipeline();
+  const first = pipeline.load([{ id: "old", name: "old.png", blob: new Blob() }]);
+  pipeline.reset();
+  const second = pipeline.load([{ id: "new", name: "new.png", blob: new Blob() }]);
+  const closeOld = vi.fn();
+  finishes[0]({ width: 1, height: 1, close: closeOld } as unknown as ImageBitmap);
+  expect(await first).toEqual([{ id: "old", ok: false, width: 0, height: 0 }]);
+  expect(closeOld).toHaveBeenCalledOnce();
+  const closeNew = vi.fn();
+  finishes[1]({ width: 1, height: 1, close: closeNew } as unknown as ImageBitmap);
+  expect(await second).toEqual([{ id: "new", ok: true, width: 1, height: 1 }]);
+  pipeline.reset();
+  expect(closeNew).toHaveBeenCalledOnce();
 });

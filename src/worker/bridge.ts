@@ -101,7 +101,12 @@ export function createBridge(worker: WorkerLike): Bridge {
   function send<T>(req: WorkerRequest, onProgress?: (done: number, total: number) => void): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       pending.set(req.jobId, { resolve: resolve as never, reject, onProgress });
-      worker.postMessage(req);
+      try {
+        worker.postMessage(req);
+      } catch (err) {
+        pending.delete(req.jobId);
+        reject(err);
+      }
     });
   }
 
